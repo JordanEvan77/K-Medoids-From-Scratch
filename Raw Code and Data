@@ -28,10 +28,10 @@ def mykmedoids(D,K,maxIter=1000):
     iter_count = 0
     new_centroid = []  # utilized very far below, key checker:
     old_centroids = random_centroids
-    while iter_count < 1000 and old_centroids != new_centroid:
+    while old_centroids != new_centroid:
         iter_count += 1
+        print(iter_count)
         new_centroid_ind = []  # utilized very far below
-        new_centroid = []  # utilized very far below, key checker:
         all_points_dist = [] # a list of lists of all the points distance
         for i in range(0, lengther):
             per_point = []  # a list to append to for per point distnaces
@@ -41,12 +41,12 @@ def mykmedoids(D,K,maxIter=1000):
             all_points_dist.append(np.array(per_point))
 
         all_points_dist = np.array(all_points_dist)
-        print('all dist', all_points_dist) # good looks correct
+        #print('all dist', all_points_dist) # good looks correct
 
         # now we need to know which of the centroids each point is closest to, so keep index of
         # closes centroid.
         closest_centroid_ind = np.argmin(all_points_dist, axis=1)
-        print('index of closest', closest_centroid_ind) # works
+        #print('index of closest', closest_centroid_ind) # works
 
         # now we need to calculate the average distance of the items in each centroid group:
         inner_centroid_dist = []
@@ -62,12 +62,13 @@ def mykmedoids(D,K,maxIter=1000):
                             inter_point.append(ind_dist)
                     cent_dist.append(inter_point)
             inner_centroid_dist.append(cent_dist)
-        print('internal centroid distances, count of points present x 5\n', inner_centroid_dist)
+        #print('internal centroid distances, count of points present x 5\n', inner_centroid_dist)
         # I need to keep the indices from each avg minimum location:
         for cent in inner_centroid_dist:
+            print('size of clusters', len(cent))
             avg_point_dist = [(sum(i)/len(i)) for i in cent]
             avg_point_dist = np.array(avg_point_dist)
-            print('look for min', avg_point_dist)
+            #print('look for min', avg_point_dist)
             min_avg = np.argmin(avg_point_dist, axis=0)
             new_centroid_ind.append(min_avg)
             print('new centroid index', new_centroid_ind)
@@ -83,7 +84,10 @@ def mykmedoids(D,K,maxIter=1000):
                     index_appender.append(j)
             new_centroid.append(index_appender[chosen_index])
         new_centroid.sort()
-        print('finally, new centroid', new_centroid)
+        print('finally, new centroid', new_centroid, old_centroids)
+        if iter_count>1000:
+            print('break iter')
+            return new_centroid
     return new_centroid
 
 
@@ -95,6 +99,8 @@ D = np.array([[0,1,2,2,0.5], [1,0,2,1.25,1], [2,2,0,0.5,2.25], [2,1.25,0.5,0,1.5
 
 kmeds_answer = mykmedoids(D,K=2)
 print('FINAL', kmeds_answer)
+#FINAL [1, 3]
+#FINAL [1, 4]
 
 ##############
 # 2:Downloading the Blood Transfusion Service Center Data Set (Links to an external site.)
@@ -126,4 +132,3 @@ fusion_dist
 # run with created function:
 fusion_km = mykmedoids(fusion_dist,K=2)
 print(fusion_km)
-#finally, new centroid [292, 556]
