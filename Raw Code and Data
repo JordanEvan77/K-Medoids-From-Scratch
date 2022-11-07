@@ -1,0 +1,129 @@
+import numpy as np
+import pandas as pd
+import statistics
+import random
+from scipy.spatial import distance_matrix
+from sklearn.cluster import KMeans
+from sklearn.preprocessing import StandardScaler
+
+def mykmedoids(D,K,maxIter=1000):
+    """
+    :param D: an NxN distance matrix. In other words, D is a two dimensional list and D[i][j] is the
+    distance between data points i and j. D should be symmetric, and D[i][i] should be zero for all
+    values of i. For all i and j, if i and j are different, then D[i][j]>0.
+    :param K:the number of clusters and should be smaller than the number of data points (i.e., K<N).
+    :param maxIter:the maximum number of times that your algorithm iterates.
+    :return: 2 Types of clusters. Firstly, A list of size N (number of data points) that indicates
+    the cluster ID of each data point. Cluster IDs start at 0. Hence, if Clusters[5] is 2, it means
+    that data point #5 belongs to cluster #2. Secondly, A list of size K that for each cluster,
+    includes the ID of the data point which is selected as the cluster center
+    """
+    # start Kmedoid at random position:
+    lengther = len(D[0])  # gives me the dimension of the square distance matrix
+    rands = random.sample(range(0, lengther-1), K)# get a random set of points
+    random_centroids = list(rands)
+    random_centroids.sort()
+    print('current centroids', random_centroids) # good works to show random 2 points as centroid
+    # now loop through every point and how far it is from each centroid
+    iter_count = 0
+    new_centroid = []  # utilized very far below, key checker:
+    old_centroids = random_centroids
+    while iter_count < 1000 and old_centroids != new_centroid:
+        iter_count += 1
+        new_centroid_ind = []  # utilized very far below
+        new_centroid = []  # utilized very far below, key checker:
+        all_points_dist = [] # a list of lists of all the points distance
+        for i in range(0, lengther):
+            per_point = []  # a list to append to for per point distnaces
+            for j in random_centroids:
+                dist = D[i][j]
+                per_point.append(dist)
+            all_points_dist.append(np.array(per_point))
+
+        all_points_dist = np.array(all_points_dist)
+        print('all dist', all_points_dist) # good looks correct
+
+        # now we need to know which of the centroids each point is closest to, so keep index of
+        # closes centroid.
+        closest_centroid_ind = np.argmin(all_points_dist, axis=1)
+        print('index of closest', closest_centroid_ind) # works
+
+        # now we need to calculate the average distance of the items in each centroid group:
+        inner_centroid_dist = []
+        for k in range(K):  # each centroid
+            cent_dist = []  # this will create two lists within a list.
+            for i in range(0, lengther): # each data point->
+                inter_point = []  # should reset with each new point, giving me the ability to find avg
+                if closest_centroid_ind[i] == k:
+                    for j in range(0, lengther): # ->compared against each data point
+                        if closest_centroid_ind[i] ==k:
+                            ind_dist = D[i][j]  # find that points distance from its self and others
+                            # within centroid group
+                            inter_point.append(ind_dist)
+                    cent_dist.append(inter_point)
+            inner_centroid_dist.append(cent_dist)
+        print('internal centroid distances, count of points present x 5\n', inner_centroid_dist)
+        # I need to keep the indices from each avg minimum location:
+        for cent in inner_centroid_dist:
+            avg_point_dist = [(sum(i)/len(i)) for i in cent]
+            avg_point_dist = np.array(avg_point_dist)
+            print('look for min', avg_point_dist)
+            min_avg = np.argmin(avg_point_dist, axis=0)
+            new_centroid_ind.append(min_avg)
+            print('new centroid index', new_centroid_ind)
+
+        old_centroids = new_centroid  # keeping old version
+        new_centroid = []
+        for k in range(K):
+            index_appender = []
+            chosen_index = new_centroid_ind[k]
+            for j in range(0, len(closest_centroid_ind)):
+                if k ==closest_centroid_ind[j]:
+                    #find match with kth index in out new_centroid_ind
+                    index_appender.append(j)
+            new_centroid.append(index_appender[chosen_index])
+        new_centroid.sort()
+        print('finally, new centroid', new_centroid)
+    return new_centroid
+
+
+
+#test Matrix of distances:
+D = np.array([[0,1,2,2,0.5], [1,0,2,1.25,1], [2,2,0,0.5,2.25], [2,1.25,0.5,0,1.5],
+              [0.5,1,2.25,1.5,0]])
+
+
+kmeds_answer = mykmedoids(D,K=2)
+print('FINAL', kmeds_answer)
+
+##############
+# 2:Downloading the Blood Transfusion Service Center Data Set (Links to an external site.)
+# from UCI repository. Normalizing, calculate Euclidean distance and make distance matrix.
+##############
+path = 'C:/Users/jorda/OneDrive/Desktop/PyCharm Community Edition 2021.2.2/5067 ML Code/Week7 Code and Class Activies/'
+
+fusion_df = pd.read_csv(path+'transfusion.csv')
+fusion_df = fusion_df[['Recency (months)', 'Frequency (times)', 'Monetary (c.c. blood)', 'Time (months)']]
+print(fusion_df.head(5))
+print(fusion_df.describe())
+
+fusion_df_norm = pd.DataFrame()
+for i in fusion_df.columns:
+    x_mean = statistics.mean(fusion_df[i])
+    x_std = statistics.stdev(fusion_df[i], x_mean)
+    print(x_mean, x_std)
+    fusion_df_norm[i] = fusion_df[i].apply(lambda x: (x-x_mean)/x_std)
+
+print(fusion_df_norm.head(5)) # this is now the first 4 columns, normalized.
+
+# measure the distance between points (Euclidean), where each column is its own coordinate:
+fusion_dist = pd.DataFrame(distance_matrix(fusion_df_norm.values, fusion_df_norm.values, p=2),
+             index=fusion_df_norm.index, columns=fusion_df_norm.index) # looks great!
+
+# construct distance matrix:
+fusion_dist
+
+# run with created function:
+fusion_km = mykmedoids(fusion_dist,K=2)
+print(fusion_km)
+#finally, new centroid [292, 556]
